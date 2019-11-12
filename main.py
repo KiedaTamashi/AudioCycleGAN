@@ -4,19 +4,16 @@ import torchvision
 from torchvision import transforms
 from logger import Logger
 import torch.utils.data
-from dataset import AudioDataset,DataLoader
+from dataset import AudioDataset
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # MNIST dataset 
-dataset = torchvision.datasets.MNIST(root='../../data', 
-                                     train=True, 
-                                     transform=transforms.ToTensor(),  
-                                     download=True)
+dataset = AudioDataset(path="./data",q_levels=256)
 
 # Data loader
-data_loader = DataLoader(dataset=dataset, batch_size=100, shuffle=True)
+data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=20, shuffle=True)
 
 
 # Fully connected neural network with one hidden layer
