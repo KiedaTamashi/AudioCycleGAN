@@ -30,7 +30,7 @@ class NeuralNet(nn.Module):
         out = self.fc2(out)
         return out
 
-model = NeuralNet().to(device)
+model = NeuralNet().to(device)     #have been done in network
 
 logger = Logger('./logs')
 

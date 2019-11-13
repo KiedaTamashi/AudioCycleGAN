@@ -3,6 +3,11 @@ import numpy as np
 from torch.optim import lr_scheduler
 import torch.backends.cudnn
 import random
+import os
+import torch
+from collections import OrderedDict
+from abc import ABC, abstractmethod
+import itertools
 EPSILON = 1e-2
 
 def load_wav(path,sr):
@@ -25,11 +30,7 @@ def linear_dequantize(samples, q_levels):
 def q_zero(q_levels):
     return q_levels // 2
 
-import os
-import torch
-from collections import OrderedDict
-from abc import ABC, abstractmethod
-from torch.optim import lr_scheduler
+
 
 def get_scheduler(optimizer, opt):
     """Return a learning rate scheduler
