@@ -5,90 +5,82 @@ from torchvision import transforms
 from logger import Logger
 import torch.utils.data
 from dataset import AudioDataset
+from model import AudioCycleGAN
+from hparams import hparams as opt
+import time
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # MNIST dataset 
-dataset = AudioDataset(path="./data",q_levels=256)
+dataset = AudioDataset(path="./data/origin",q_levels=256)
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=20, shuffle=True)
-
-
+data_iter = iter(data_loader)
+iter_per_epoch = len(data_loader)
 # Fully connected neural network with one hidden layer
-class NeuralNet(nn.Module):
-    def __init__(self, input_size=784, hidden_size=500, num_classes=10):
-        super(NeuralNet, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size) 
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_classes)  
-    
-    def forward(self, x):
-        out = self.fc1(x)
-        out = self.relu(out)
-        out = self.fc2(out)
-        return out
-
-model = NeuralNet().to(device)     #have been done in network
+model = AudioCycleGAN(opt)
 
 logger = Logger('./logs')
 
 # Loss and optimizer
-criterion = nn.CrossEntropyLoss()  
-optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)  
+model.setup(opt)   # regular setup: load and print networks; create schedulers
 
-data_iter = iter(data_loader)
-iter_per_epoch = len(data_loader)
-total_step = 50000
+total_iters = 0                # the total number of training iterations
+for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
+    epoch_start_time = time.time()  # timer for entire epoch
+    iter_data_time = time.time()    # timer for data loading per iteration
+    epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
 
-# Start training
-for step in range(total_step):
-    
-    # Reset the data_iter
-    if (step+1) % iter_per_epoch == 0:
-        data_iter = iter(data_loader)
+    for i, data in enumerate(data_iter):  # inner loop within one epoch
+        iter_start_time = time.time()  # timer for computation per iteration
+        if total_iters % opt.print_freq == 0:
+            t_data = iter_start_time - iter_data_time
 
-    # Fetch images and labels
-    images, labels = next(data_iter)
-    images, labels = images.view(images.size(0), -1).to(device), labels.to(device)
-    
-    # Forward pass
-    outputs = model(images)
-    loss = criterion(outputs, labels)
-    
-    # Backward and optimize
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+        total_iters += opt.batch_size
+        epoch_iter += opt.batch_size
+        model.set_input(data)  # unpack data from dataset and apply preprocessing
+        model.optimize_parameters()  # calculate loss functions, get gradients, update network weights
 
-    # Compute accuracy
-    _, argmax = torch.max(outputs, 1)
-    accuracy = (labels == argmax.squeeze()).float().mean()
+        # if total_iters % opt.display_freq == 0:  # display images on visdom and save images to a HTML file
+        #     save_result = total_iters % opt.update_html_freq == 0
+        #     model.compute_visuals()
+        if total_iters % opt.print_freq == 0:  # print training losses and save logging information to the disk
+            losses = model.get_current_losses()
+            t_comp = (time.time() - iter_start_time) / opt.batch_size
+            if opt.display_id > 0:
+                pass
 
-    if (step+1) % 100 == 0:
-        print ('Step [{}/{}], Loss: {:.4f}, Acc: {:.2f}' 
-               .format(step+1, total_step, loss.item(), accuracy.item()))
-        # we can use tensorboard in pytorch
-        # ================================================================== #
-        #                        Tensorboard Logging                         #
-        # ================================================================== #
+            # 1. Log scalar values (scalar summary)
+            info = {'loss': losses.item()}
 
-        # 1. Log scalar values (scalar summary)
-        info = { 'loss': loss.item(), 'accuracy': accuracy.item() }
+            for tag, value in info.items():
+                logger.scalar_summary(tag, value, total_iters + 1)
 
-        for tag, value in info.items():
-            logger.scalar_summary(tag, value, step+1)
+            # # 2. Log values and gradients of the parameters (histogram summary)
+            # for tag, value in model.named_parameters():
+            #     tag = tag.replace('.', '/')
+            #     logger.histo_summary(tag, value.data.cpu().numpy(), step + 1)
+            #     logger.histo_summary(tag + '/grad', value.grad.data.cpu().numpy(), step + 1)
 
-        # 2. Log values and gradients of the parameters (histogram summary)
-        for tag, value in model.named_parameters():
-            tag = tag.replace('.', '/')
-            logger.histo_summary(tag, value.data.cpu().numpy(), step+1)
-            logger.histo_summary(tag+'/grad', value.grad.data.cpu().numpy(), step+1)
+            # # 3. Log training images (image summary)
+            # info = {'images': images.view(-1, 28, 28)[:10].cpu().numpy()}
+            # for tag, images in info.items():
+            #     logger.image_summary(tag, images, total_iters + 1)
 
-        # 3. Log training images (image summary)
-        info = { 'images': images.view(-1, 28, 28)[:10].cpu().numpy() }
+        if total_iters % opt.save_latest_freq == 0:  # cache our latest model every <save_latest_freq> iterations
+            print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
+            save_suffix = 'iter_%d' % total_iters if opt.save_by_iter else 'latest'
+            model.save_networks(save_suffix)
 
-        for tag, images in info.items():
-            logger.image_summary(tag, images, step+1)
-        # after that we can use tensorboard --logdir='that logdir' to show result visually
+        iter_data_time = time.time()
+    if epoch % opt.save_epoch_freq == 0:  # cache our model every <save_epoch_freq> epochs
+        print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
+        model.save_networks('latest')
+        model.save_networks(epoch)
+
+    print('End of epoch %d / %d \t Time Taken: %d sec' % (
+    epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
+    model.update_learning_rate()
+

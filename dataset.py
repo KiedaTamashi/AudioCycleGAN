@@ -19,17 +19,19 @@ class AudioDataset(dataset):
         file_names = natsorted(
             [os.path.join(path, file_name) for file_name in os.listdir(path)]
         )
-        self.file_names = file_names[
+        self.file_names={}
+        self.file_names["A"] = file_names[
                           int(ratio_min * len(file_names)): int(ratio_max * len(file_names))
                           ]
 
     def __getitem__(self, index):
-        (seq, _) = librosa.core.load(self.file_names[index], sr=hparams.s, mono=True)
-        return linear_quantize(torch.from_numpy(seq), self.q_levels)
+        (seq_a, _) = librosa.core.load(self.file_names["A"][index], sr=hparams.s, mono=True)
+        (seq_b, _) = librosa.core.load(self.file_names["B"][index], sr=hparams.s, mono=True)
+        return {"A":linear_quantize(torch.from_numpy(seq_a), self.q_levels),"B":linear_quantize(torch.from_numpy(seq_b), self.q_levels)}
 
 
     def __len__(self):
-        return len(self.file_names)
+        return len(self.file_names["A"])
 
 
 # class DataLoader(DataLoaderBase):
