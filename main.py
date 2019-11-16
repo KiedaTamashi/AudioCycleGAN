@@ -13,7 +13,7 @@ import time
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # MNIST dataset 
-dataset = AudioDataset(path="./data/origin",q_levels=256)
+dataset = AudioDataset("./data/origin")
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=20, shuffle=True)

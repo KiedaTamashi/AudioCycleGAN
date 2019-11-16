@@ -1,20 +1,18 @@
 from utils import *
 import torch
-from torch.utils.data import dataset,DataLoader as DataLoaderBase
+from torch.utils.data import Dataset
 import os
 from natsort import natsorted
 from hparams import hparams
 
-class AudioDataset(dataset):
-    def __init__(self, path, q_levels, ratio_min=0, ratio_max=1):
+class AudioDataset(Dataset):
+    def __init__(self, path, q_levels=256, ratio_min=0, ratio_max=1):
         '''
         :param path: natural folder path which contains the specific data
-        :param overlap_len:
         :param q_levels: quantitize level 256
         :param ratio_min: decide get how many percent data in this folder.
         :param ratio_max:decide get how many percent data in this folder.
         '''
-        super().init()
         self.q_levels = q_levels
         file_names = natsorted(
             [os.path.join(path, file_name) for file_name in os.listdir(path)]

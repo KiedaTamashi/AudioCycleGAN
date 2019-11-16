@@ -18,6 +18,17 @@ in_channels = 1 if in_type!='mulaw-quantize' else out_channels
 # Default hyperparameters
 hparams = tf.contrib.training.HParams(
 
+#################### new params #############################
+    gpu_ids='0',
+    isTrain = True,
+    preprocess = 'scale_width',
+    continue_train=False,
+    load_iter=0,
+    verbose=False,
+    lr_policy='linear', #learning rate policy. [linear | step | plateau | cosine]
+
+
+#################### new params #############################
     summary_path = save_path_prefix,
     params_path = save_path_prefix,
     samples_path = os.path.join(save_path_prefix,'samples'),
@@ -25,7 +36,7 @@ hparams = tf.contrib.training.HParams(
     debug=True,
     phase='train',
     pretrain_wavenet=False,
-    n_epochs=300,
+    n_epochs=100,
     save_freq=3,
     epoch_iters=100,
     init_lr=1e-4,
@@ -45,7 +56,7 @@ hparams = tf.contrib.training.HParams(
     # text, you may want to use "basic_cleaners" or "transliteration_cleaners".
     cleaners='english_cleaners',
 
-    # Hardware setup (TODO: multi-GPU parallel tacotron training)
+    # Hardware setup
     use_all_gpus=True,
     # Whether to use all GPU resources. If True, total number of available gpus will override num_gpus.
     num_gpus=3,  # Determines the number of gpus in use
