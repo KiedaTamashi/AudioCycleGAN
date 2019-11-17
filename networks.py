@@ -37,8 +37,9 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     """
     if len(gpu_ids) > 0:
         assert(torch.cuda.is_available())
-        net.to(gpu_ids[0]) # Device configuration
-        net = DataParallel(net, gpu_ids)  # multi-GPUs
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        net.to(device) # Device configuration
+        net = DataParallel(net)  # multi-GPUs
     init_weights(net, init_type, init_gain=init_gain)
     return net
 
@@ -146,6 +147,7 @@ class UnetGenerator(nn.Module):
         It is a recursive process.
         """
         #TODO we should add a self-attention to solve the unmatched length
+        #now the input data is sized as (90000,512)
         super(UnetGenerator, self).__init__()
         # construct unet structure
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
@@ -156,6 +158,8 @@ class UnetGenerator(nn.Module):
         unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
         unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
         self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
+
+
 
     def forward(self, input):
         """Standard forward"""

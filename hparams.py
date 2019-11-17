@@ -19,17 +19,41 @@ in_channels = 1 if in_type!='mulaw-quantize' else out_channels
 hparams = tf.contrib.training.HParams(
 
 #################### new params #############################
-    gpu_ids='0',
+    gpu_ids=['0'],
     isTrain = True,
     preprocess = 'scale_width',
     continue_train=False,
     load_iter=0,
     verbose=False,
     lr_policy='linear', #learning rate policy. [linear | step | plateau | cosine]
+    audio_max_length = 90000,#here max is 88320
+    audio_preprocess=True, #use when load dataset
+    input_nc = 512,
+    output_nc = 512,
+    ngf = 64,
+    ndf=64,
+    netG='unet_128',
+    norm='batch',
+    no_dropout=True,
+    init_type='normal',
+    init_gain=0.02,
+    netD='basic',
+    n_layers_D=3,
+    pool_size =3,
+    gan_mode='lsgan',#define the gan loss
+    lr=2e-4,
+    beta1=0.5,
+    lambda_identity=0.5,
+    lambda_A=1.0,
+    niter=100, #which epoch we should change the starting lr
+    niter_decay=100, #how many epoch it takes to the lowest lr
+    lr_decay_iters=50,
 
 
 #################### new params #############################
     summary_path = save_path_prefix,
+
+
     params_path = save_path_prefix,
     samples_path = os.path.join(save_path_prefix,'samples'),
     restore_dir=None,#r"/usr/whz/generative_audio_attack/gan_model/summary_model/exp_172815_20190112",
@@ -37,7 +61,7 @@ hparams = tf.contrib.training.HParams(
     phase='train',
     pretrain_wavenet=False,
     n_epochs=100,
-    save_freq=3,
+    save_freq=1,
     epoch_iters=100,
     init_lr=1e-4,
     lambda_update_rate=0.5,

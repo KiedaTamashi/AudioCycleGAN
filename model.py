@@ -89,6 +89,7 @@ class AudioCycleGAN(BaseModel):
         audio_b = input['B' if AtoB else 'A']
         self.real_A = audio_a.view(audio_a.size(0),-1).to(self.device) #TODO to fit our design
         self.real_B = audio_b.view(audio_b.size(0),-1).to(self.device)
+        self.audio_len = input['ori_length']
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
@@ -135,7 +136,7 @@ class AudioCycleGAN(BaseModel):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.opt.lambda_identity
         lambda_A = self.opt.lambda_A
-        lambda_B = self.opt.lambda_B
+        # lambda_B = self.opt.lambda_B
         # Identity loss
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
@@ -143,6 +144,7 @@ class AudioCycleGAN(BaseModel):
             # self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
             self.idt_B = self.netG_B(self.real_A)
+            #TODO we should save the original input and calculate loss based on the same/origin length without padding latter
             self.loss_idt_B = self.criterionIdt(self.idt_B, self.real_A) * lambda_A * lambda_idt
         else:
             self.loss_idt_A = 0

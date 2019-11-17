@@ -4,9 +4,10 @@ from torch.utils.data import Dataset
 import os
 from natsort import natsorted
 from hparams import hparams
+import numpy as np
 
 class AudioDataset(Dataset):
-    def __init__(self, path, q_levels=256, ratio_min=0, ratio_max=1):
+    def __init__(self, path, q_levels=256, ratio_min=0, ratio_max=1,max_len = 90000,isPreprocess=True):
         '''
         :param path: natural folder path which contains the specific data
         :param q_levels: quantitize level 256
@@ -14,18 +15,45 @@ class AudioDataset(Dataset):
         :param ratio_max:decide get how many percent data in this folder.
         '''
         self.q_levels = q_levels
-        file_names = natsorted(
-            [os.path.join(path, file_name) for file_name in os.listdir(path)]
+        file_names_a = natsorted(
+            [os.path.join(path+"/A", file_name) for file_name in os.listdir(path)]
         )
-        self.file_names={}
-        self.file_names["A"] = file_names[
-                          int(ratio_min * len(file_names)): int(ratio_max * len(file_names))
+        file_names_b = natsorted(
+            [os.path.join(path + "/B", file_name) for file_name in os.listdir(path)]
+        )
+        self.file_names = {}
+        self.file_names["A"] = file_names_a[
+                          int(ratio_min * len(file_names_a)): int(ratio_max * len(file_names_a))
                           ]
+        self.file_names["B"] = file_names_b[
+                               int(ratio_min * len(file_names_b)): int(ratio_max * len(file_names_b))
+                               ]
+        self.max_len = max_len
+        self.isPreprocessed = isPreprocess
 
     def __getitem__(self, index):
-        (seq_a, _) = librosa.core.load(self.file_names["A"][index], sr=hparams.s, mono=True)
-        (seq_b, _) = librosa.core.load(self.file_names["B"][index], sr=hparams.s, mono=True)
-        return {"A":linear_quantize(torch.from_numpy(seq_a), self.q_levels),"B":linear_quantize(torch.from_numpy(seq_b), self.q_levels)}
+        if self.isPreprocessed:
+            input_data_a = np.load(self.file_names["A"][index])
+            input_data_b = np.load(self.file_names["B"][index])
+            ori_length = input_data_a.shape[0]
+            if ori_length < self.max_len:
+                npi = np.zeros(self.q_levels, dtype=np.float32)
+                npi = np.tile(npi, (self.max_len - ori_length, 1))
+                input_data_a = np.row_stack((input_data_a, npi))
+                npo = np.zeros(self.q_levels, dtype=np.float32)
+                npo = np.tile(npo, (self.max_len - ori_length, 1))
+                input_data_b = np.row_stack((input_data_b, npo))
+            #TODO if needed, change the net to LSTM with "pack_padded_sequence"
+        else:
+
+            (seq_a, _) = librosa.core.load(self.file_names["A"][index], sr=hparams.s, mono=True) #if we load audio directly, we have double
+            (seq_b, _) = librosa.core.load(self.file_names["B"][index], sr=hparams.s, mono=True)
+            input_data_a = linear_quantize(torch.from_numpy(seq_a), self.q_levels)
+            input_data_b = linear_quantize(torch.from_numpy(seq_b), self.q_levels)
+
+            ori_length = len(self.file_names["A"])
+
+        return {"A":input_data_a,"B":input_data_b,"ori_length":ori_length}
 
 
     def __len__(self):

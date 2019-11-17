@@ -9,11 +9,9 @@ from model import AudioCycleGAN
 from hparams import hparams as opt
 import time
 
-# Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # MNIST dataset 
-dataset = AudioDataset("./data/origin")
+dataset = AudioDataset("./data/preprocess")
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=20, shuffle=True)
@@ -28,7 +26,7 @@ logger = Logger('./logs')
 model.setup(opt)   # regular setup: load and print networks; create schedulers
 
 total_iters = 0                # the total number of training iterations
-for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
+for epoch in range(opt.n_epochs, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
     epoch_start_time = time.time()  # timer for entire epoch
     iter_data_time = time.time()    # timer for data loading per iteration
     epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
