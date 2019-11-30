@@ -7,7 +7,7 @@ from hparams import hparams
 import numpy as np
 
 class AudioDataset(Dataset):
-    def __init__(self, path, q_levels=256, ratio_min=0, ratio_max=1,max_len = 90000,isPreprocess=True):
+    def __init__(self, path, q_levels=256, ratio_min=0, ratio_max=1,max_len = hparams.audio_max_length,isPreprocess=True):
         '''
         :param path: natural folder path which contains the specific data
         :param q_levels: quantitize level 256
@@ -16,10 +16,10 @@ class AudioDataset(Dataset):
         '''
         self.q_levels = q_levels
         file_names_a = natsorted(
-            [os.path.join(path+"/A", file_name) for file_name in os.listdir(path)]
+            [os.path.join(path+"/A", file_name) for file_name in os.listdir(path+"/A")]
         )
         file_names_b = natsorted(
-            [os.path.join(path + "/B", file_name) for file_name in os.listdir(path)]
+            [os.path.join(path + "/B", file_name) for file_name in os.listdir(path+"/B")]
         )
         self.file_names = {}
         self.file_names["A"] = file_names_a[
@@ -33,8 +33,8 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, index):
         if self.isPreprocessed:
-            input_data_a = np.load(self.file_names["A"][index])
-            input_data_b = np.load(self.file_names["B"][index])
+            input_data_a = np.load(self.file_names["A"][index]).astype(np.float)
+            input_data_b = np.load(self.file_names["B"][index]).astype(np.float)
             ori_length = input_data_a.shape[0]
             if ori_length < self.max_len:
                 npi = np.zeros(self.q_levels, dtype=np.float32)

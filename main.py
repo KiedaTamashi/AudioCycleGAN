@@ -14,7 +14,7 @@ import time
 dataset = AudioDataset("./data/preprocess")
 
 # Data loader
-data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=20, shuffle=True)
+data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=2, shuffle=True)
 data_iter = iter(data_loader)
 iter_per_epoch = len(data_loader)
 # Fully connected neural network with one hidden layer

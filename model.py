@@ -87,8 +87,8 @@ class AudioCycleGAN(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         audio_a = input['A' if AtoB else 'B']
         audio_b = input['B' if AtoB else 'A']
-        self.real_A = audio_a.view(audio_a.size(0),-1).to(self.device) #TODO to fit our design
-        self.real_B = audio_b.view(audio_b.size(0),-1).to(self.device)
+        self.real_A = audio_a.to(self.device) #TODO to fit our design
+        self.real_B = audio_b.to(self.device)
         self.audio_len = input['ori_length']
 
     def forward(self):

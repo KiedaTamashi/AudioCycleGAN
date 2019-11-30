@@ -26,7 +26,7 @@ hparams = tf.contrib.training.HParams(
     load_iter=0,
     verbose=False,
     lr_policy='linear', #learning rate policy. [linear | step | plateau | cosine]
-    audio_max_length = 90000,#here max is 88320
+    audio_max_length = 110000,#here max is 88320
     audio_preprocess=True, #use when load dataset
     input_nc = 512,
     output_nc = 512,
@@ -48,6 +48,8 @@ hparams = tf.contrib.training.HParams(
     niter=100, #which epoch we should change the starting lr
     niter_decay=100, #how many epoch it takes to the lowest lr
     lr_decay_iters=50,
+    print_freq=10,
+    direction="AtoB",
 
 
 #################### new params #############################
